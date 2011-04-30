@@ -3,5 +3,5 @@
 	require("include/core.php");
     $yishop = new Yishop();
     $yishop->run();
-    echo "<br />".memory_get_usage();
+    echo "<br />Ê¹ÓÃÄÚ´æ".memory_get_usage();
 ?>
