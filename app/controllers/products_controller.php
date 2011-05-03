@@ -42,6 +42,5 @@ class ProductsController extends ApplicationController{
             
         $this->render($local_var = array("product"=>$product));
     }
-        
 }
 ?>    

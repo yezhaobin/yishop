@@ -10,6 +10,7 @@
  * $Author: 叶兆滨 $
  * $Id: functions.php 2011-4-30 $
 */
+
 if(!defined("IN_YISHOP")){
     die("try to hack");
 }

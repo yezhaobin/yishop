@@ -14,20 +14,23 @@
 if(!defined("IN_YISHOP")){
     die("try to hack");
 }
-
+/**
+*Yishop 初始化类
+*/
 class Yishop{
     protected $database;
     
-    /*
-    *载入 
+    /**
+    *载入程序配置文件、单词单复数转换文件、路由配置文件夹、公用函数文件、用户模型文件、网站控制器类文件
+    *初始化数据库信息、载入语言文件、初始化全局用户数据 
     */
     function __construct(){
         require_once(YISHOP_PATH."config/config.php");
         require_once(YISHOP_PATH."config/initializers/inflections.php");
         require_once(YISHOP_PATH."config/routes.php");
-        require_once(YISHOP_PATH."app/controllers/application_controller.php");
         require_once(YISHOP_PATH."include/functions.php");
         require_once(YISHOP_PATH."app/models/user.php");
+        require_once(YISHOP_PATH."app/controllers/application_controller.php");
 
         $this->database = $database;
             
@@ -53,9 +56,19 @@ class Yishop{
         $route->routes(substr($_SERVER["REQUEST_URI"], 1));
     }
 }
-    
+
+/**
+*路由类
+*/   
 class ActionDispatch{
 
+    /**
+    *路由到呼叫的控制器和动作
+    *
+    *@access  public
+    *@param  string    $query_string
+    *@return   boolean
+    */
     function routes($query_string){
         global $ROUTES;
         if($query_string[strlen($query_string)-1] == "/"){
@@ -131,9 +144,14 @@ class ActionDispatch{
         }else{
             $this->error_page("404");
         }
-            
+        return true;
     }
-
+    /**
+    *输出错误页
+    *
+    *@param  string    $error_code
+    *@return void
+    */
     function error_page($error_code){
         $filepath=YISHOP_PATH."public/".$error_code.".html";
         $f = fopen($filepath, 'r');
@@ -141,12 +159,21 @@ class ActionDispatch{
     }
 
 }    
-
+/**
+*控制器基本类
+*/
 class Controller{
 
     function __construct(){
     
     }
+    
+    /**
+    *载入对应的模型类文件
+    *
+    *@param  string    $name
+    *@return void
+    */
     static function call_model($name){
         $name = lcfirst($name);
         require_once (YISHOP_PATH."app/models/".$name.".php");
