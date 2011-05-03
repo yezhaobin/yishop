@@ -1,22 +1,26 @@
 <?php
 /**
- * Yishop ºËÐÄÀàÎÄ¼þ
+ * Yishop æ ¸å¿ƒç±»æ–‡ä»¶
  * ============================================================================
- * °æÈ¨ËùÓÐ 2011-2012 Ò¶Õ×±õ£¬²¢±£ÁôËùÓÐÈ¨Àû¡£
+ * ç‰ˆæƒæ‰€æœ‰ 2011-2012 å¶å…†æ»¨ï¼Œå¹¶ä¿ç•™æ‰€æœ‰æƒåˆ©ã€‚
  * ----------------------------------------------------------------------------
- * Õâ²»ÊÇÒ»¸ö×ÔÓÉÈí¼þ£¡ÄúÖ»ÄÜÔÚ²»ÓÃÓÚÉÌÒµÄ¿µÄµÄÇ°ÌáÏÂ¶Ô³ÌÐò´úÂë½øÐÐÐÞ¸ÄºÍ
- * Ê¹ÓÃ£»²»ÔÊÐí¶Ô³ÌÐò´úÂëÒÔÈÎºÎÐÎÊ½ÈÎºÎÄ¿µÄµÄÔÙ·¢²¼¡£
+ * è¿™ä¸æ˜¯ä¸€ä¸ªè‡ªç”±è½¯ä»¶ï¼æ‚¨åªèƒ½åœ¨ä¸ç”¨äºŽå•†ä¸šç›®çš„çš„å‰æä¸‹å¯¹ç¨‹åºä»£ç è¿›è¡Œä¿®æ”¹å’Œ
+ * ä½¿ç”¨ï¼›ä¸å…è®¸å¯¹ç¨‹åºä»£ç ä»¥ä»»ä½•å½¢å¼ä»»ä½•ç›®çš„çš„å†å‘å¸ƒã€‚
  * ============================================================================
- * $Author: Ò¶Õ×±õ $
- * $Id: index.php 2011-4-30  Ò¶Õ×±õ $
+ * $Author: å¶å…†æ»¨ $
+ * $Id: index.php 2011-4-30  å¶å…†æ»¨ $
 */
+
 if(!defined("IN_YISHOP")){
     die("try to hack");
 }
 
 class Yishop{
     protected $database;
-
+    
+    /*
+    *è½½å…¥ 
+    */
     function __construct(){
         require_once(YISHOP_PATH."config/config.php");
         require_once(YISHOP_PATH."config/initializers/inflections.php");
@@ -24,7 +28,7 @@ class Yishop{
         require_once(YISHOP_PATH."app/controllers/application_controller.php");
         require_once(YISHOP_PATH."include/functions.php");
         require_once(YISHOP_PATH."app/models/user.php");
-            
+
         $this->database = $database;
             
         //current language
@@ -160,7 +164,7 @@ class ActiveRecord implements Iterator{
     public    $model_name = "";
     public    $fields = array();
     public    $flash = array();
-    protected $validate_rules = array();
+    public    $validate_rules = array();
     public    $validate_flag =true;
     public    $q = "";
     public    $current_key = 0;
@@ -175,7 +179,7 @@ class ActiveRecord implements Iterator{
             mysql_select_db($database["db_name"]);
         }
 
-        $this->get_struct();//»ñÈ¡×Ö¶ÎÐÅÏ¢
+        $this->get_struct();//èŽ·å–å­—æ®µä¿¡æ¯
             
         if(!empty($attributes)){
             foreach($this->fields as $key => $value){
@@ -496,7 +500,7 @@ class ActiveRecord implements Iterator{
         }
         return $result;
     }
-    //µü´úÆ÷·½·¨
+    //è¿­ä»£å™¨æ–¹æ³•
     function rewind(){
         if(!empty($this->q)){
             mysql_data_seek($this->q, 0);
@@ -537,7 +541,7 @@ class ActionController extends Controller{
             $this->before_filter();        
         }
         
-        function render( &$local_var=array(), $options=array()){
+        function render( $args = array("local_var"=>array(),"options"=>array())){
             $layout = "application";
             $temple="default";
             $html=true;
@@ -546,11 +550,15 @@ class ActionController extends Controller{
             $js=false;
             $xml=false;
             
-            foreach($options as $key =>$value){
-                $$key = $value;
+            if(array_key_exists("options", $args)){
+               foreach($args["options"] as $key =>$value){
+                 $$key = $value;
+               }
             }
-            
-            $view = new ActionView(get_class($this), $this->current_action, $local_var);
+
+            isset($args["local_var"])?"":$args["local_var"] = array();
+
+            $view = new ActionView(get_class($this), $this->current_action, $args["local_var"]);
             $option = array("layout"=>$layout, "temple"=>$temple, "html"=>$html, "text"=>$text, "json"=>$json, "js"=>$js, "xml"=>$xml);
             $view->render($option);
         }
@@ -561,6 +569,12 @@ class ActionController extends Controller{
 
         function after_filter(){
             return false;
+        }
+
+        function check_csrf(){
+            if(isset($_POST["csrf_token"])&&$_POST["csrf_token"]==md5($_SERVER["USER_AGENT"].SECRET_TOKEN)){
+                return system_error("forbidden_csrf");
+            }
         }
 
         function __deconstruct(){
@@ -644,10 +658,12 @@ class ActionView{
         }
 
         function yield(){
+            global $G;
             require($this->temple_path);
         }
 
         function partical($part_view){
+            global $G;
             require(YISHOP_PATH."app/views/".$this->views_folder."/_".$part_view.".html.php");
         }
 
@@ -723,7 +739,7 @@ class HtmlHelper extends Helper{
     static function form_for(&$model,$html_options = array("action"=>"default", "method"=>"post" )){
         $form_string = "";
         $controller =  Inflections::pluralize(lcfirst(get_class($model)));
-        $_method_input = "<input type=\"hidden\" name=\"_method\" value=\"put\"/>";
+        $_method_input = "";
             
         if(!array_key_exists("action",$html_options)){
             $html_options["action"] = "default"; 
@@ -735,11 +751,10 @@ class HtmlHelper extends Helper{
             
         if($html_options["action"] == "default"){
             if(empty($model->id)){
-                $html_options["action"] = $html_options["action"] = $controller."/".$model->id;
-                    
+                $html_options["action"] = self::path($controller);
+                $_method_input = "<input type=\"hidden\" name=\"_method\" value=\"put\"/>";
             }else{
-                $html_options["action"] = self::path($html_options["action"]);
-                $_method_input = "";
+                $html_options["action"] = self::path(array($controller,$model->id));
             }
         }
             
@@ -752,12 +767,31 @@ class HtmlHelper extends Helper{
 
         return $form_string;
     }
-        
+    
+    static function form_tag($html_options = array("action"=>"", "method"=>"post")){
+        if(isset($html_options["action"])){
+            $html_options["action"] = self::path($html_options["action"]);
+        }
+
+        if(!isset($html_options["method"])){
+            $html_options["method"] = "post";
+        }
+
+        $form_string = "<form ";
+        foreach($html_options as $key => $value){
+           $form_string .= $key ."=\"$value\" ";
+        }
+        $form_string .=">";
+        $form_string .="<input type=\"hidden\" name=\"csrf_token\" value=\"".self::csrf_token()."\"/>";
+        return $form_string;
+    }
+
     static function csrf_token(){
         require(YISHOP_PATH."config/initializers/secret_token.php");
         $csrf_token = md5(SECRET_TOKEN.$_SERVER["HTTP_USER_AGENT"]);
         return $csrf_token;
     }
+
 }
 
 
@@ -786,10 +820,7 @@ class UserStuff{
                 $G["password"] = md5($user["password"].$user["salt"]);
                 set_cookie(COOKIE_PREF."auth",$G["uid"]."\t".$G["username"]."\t".$G["password"],$expire);
             }
-        }else{
-           $G["uid"] = $user['id'];
-           $G["username"] = $user["username"];
-        }        
+        }
     }
 
     static function check_login(){
@@ -810,8 +841,12 @@ class UserStuff{
         $user = User.find($user_id)->query()->fetch();
         
         if(!empty($user) && md5($user["password"].$user["salt"]) == $password){
-            return $user;
+            $G["uid"] = $user["id"];
+            $G["username"] = $user["username"];
+            $G["password"] = $user["password"];
+            return true;
         }else{
+            $G["id"] = 0;
             return false;
         }
 

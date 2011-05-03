@@ -25,6 +25,10 @@ function i18n($key, $lang = "default"){
         }
     }
 
+    if(!array_key_exists($key, $i18n)){
+       system_error("lang_file_does't_contain_the_words",$key);
+    }
+
     return $i18n[$key];
 }
     
@@ -36,6 +40,8 @@ function system_error($message_code,$e=""){
         foreach($e as $key => $value){
             echo "<p style='background-color:yellow;font-size:12px;color:red;text-indent:2em;'>".$key.":".$value."</p>";
         }
+    }else{
+        echo "<p style='background-color:yellow;font-size:12px;color:red;text-indent:2em;'>".$e."</p>";
     }
     echo " </body></html>";
     exit();
