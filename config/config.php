@@ -5,6 +5,6 @@
     define("SITE_NAME","Yishop");
     define("ROUTE_STYLE","path");
     define("COOKIE_PREF","m712_");
-    define("URL_MODE","friendly");
+    define("ROUTE_TYPE","path");
     define("SYSTME_PATH","/");
 ?>

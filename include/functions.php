@@ -16,21 +16,16 @@ if(!defined("IN_YISHOP")){
 }
 
 function i18n($key, $lang = "default"){
-    global $i18n;
-    if($lang!="default"){
-        $lang_file = YISHOP_PATH."config/locals/i18n_".$lang.".php";
-        if(file_exsits($lang_file)){
-            require($lang_file);
-        }else{
-            system_error("lang_file_doesn't_exists");
-        }
-    }
+    global $i18n;//系统的语言
+    global $i18n_tpl;//模板的语言
 
-    if(!array_key_exists($key, $i18n)){
-       system_error("lang_file_does't_contain_the_words",$key);
+    if(array_key_exists($key, $i18n)){
+        return $i18n[$key];
+    }elseif(array_key_exists($key , $i18n_tpl)){
+        return $i18n_tpl[$key];
+    }else{
+        return system_error("lang_file_does't_contain_the_words",$key);
     }
-
-    return $i18n[$key];
 }
     
 function system_error($message_code,$e=""){

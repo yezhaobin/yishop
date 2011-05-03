@@ -1,3 +1,4 @@
 <?php
      global $ROUTES;
-	 $ROUTES = array("login"=>"users/login",);
+     $ROUTES = array("login"=>"users/login",
+                     "register"=>"users/register",);

@@ -33,8 +33,5 @@ class ApplicationController extends ActionController{
         return $menu;
     }
 
-    function check_login(){
-
-    }
 }
 

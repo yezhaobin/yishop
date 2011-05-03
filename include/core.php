@@ -14,6 +14,7 @@
 if(!defined("IN_YISHOP")){
     die("try to hack");
 }
+
 /**
 *Yishop 初始化类
 */
@@ -33,7 +34,7 @@ class Yishop{
         require_once(YISHOP_PATH."app/controllers/application_controller.php");
 
         $this->database = $database;
-            
+
         //current language
         $lang = isset($_GET["lang"])?$_GET["lang"]:(isset($_COOKIE["lang"])?$_COOKIE["lang"]:"");
         $lang_file_path = YISHOP_PATH."config/locales/i18n_".$lang.".php";
@@ -45,12 +46,11 @@ class Yishop{
             require_once(YISHOP_PATH."config/locales/i18n_".SITE_LANGUAGE.".php");
             define("LANG", SITE_LANGUAGE);
         }
-            
-        //user info
-        global $G;
+
+        global $G;//全局用户信息
         $G["uid"] = 0;
     }
-          
+
     function run(){
         $route = new ActionDispatch();
         $route->routes(substr($_SERVER["REQUEST_URI"], 1));
@@ -66,14 +66,21 @@ class ActionDispatch{
     *路由到呼叫的控制器和动作
     *
     *@access  public
-    *@param  string    $query_string
-    *@return   boolean
+    *@param   string    $query_string
+    *@return  boolean
     */
     function routes($query_string){
+
         global $ROUTES;
+
+        if(ROUTE_TYPE!="path"){
+            $query_string = $_GET["r"];
+        }
+
         if($query_string[strlen($query_string)-1] == "/"){
             $query_string = substr($query_string,0,strlen($query_string)-1);
         }
+
         if(isset($ROUTES[$query_string])){
             $query_string = $ROUTES[$query_string];
         }
@@ -96,14 +103,14 @@ class ActionDispatch{
             case 0:
                 $controller = "HomeController";
                 $controller_path = YISHOP_PATH."app/controllers/home_controller".".php";
-                $action = "index";                  
+                $action = "index";
                 break;
             case 1:
                 $action = "index";
                 if ($http_method == "POST"){
                     $action = "save";
                 }
-               break;
+                break;
             case 2: 
                 if ($routes[1] == "new"){
                     $action = "create";
@@ -158,14 +165,15 @@ class ActionDispatch{
         echo fread($f, filesize($filepath));
     }
 
-}    
+}
+
 /**
 *控制器基本类
 */
 class Controller{
 
     function __construct(){
-    
+
     }
     
     /**
@@ -214,7 +222,7 @@ class ActiveRecord implements Iterator{
                     $this->fields[$key] = $value;
                 }
             }
-        }            
+        }
     }
 
     function __get($name){
@@ -623,12 +631,14 @@ class ActionView{
             $this->action_name = $action_name;
             $this->local_var = $local_var;
             
-            //the langauge file of the view
+            //尝试载入模板的语言文件
             $lang_file = YISHOP_PATH."config/locales/".$this->views_folder."/".$this->action_name."_".LANG.".php";
             if(file_exists($lang_file)){
                 require($lang_file);
             }else{
-                system_error("lang_file_doesn't_exists",array($this->views_folder=>$lang_file));
+                //system_error("lang_file_doesn't_exists",array($this->views_folder=>$lang_file));
+                global $i18n_tpl;
+                $i18n_tpl = array();
             }
         }
 
@@ -836,7 +846,7 @@ class UserStuff{
             }else{
                 $expire = 3600 * 365;
             }
-            $user = new User();         
+            $user = new User();
             $user = $user->where(array("username"=>$username,"password"=>$password))->query()->fetch();
 
             if(empty($user)){
@@ -920,6 +930,17 @@ class Email{
 
         return $result;
     }
+}
+
+class cache{
+    function __construct(){
+        if(defined(CACHE_OPEN)&&CACHE_OPEN == "true"){
+            
+        }else{
+           
+        }
+    }
+
 }
 
 class Weibo{

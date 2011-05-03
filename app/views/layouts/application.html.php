@@ -8,7 +8,7 @@
 </head>
 <body>
 <div id="header">
-    <div id="user_info"><?php if(1) echo HtmlHelper::link_to(i18n("login"),HtmlHelper::path(array("login"))); ?></div>
+    <div id="user_info"><?php if($G["uid"]==0) echo HtmlHelper::link_to(i18n("login"),HtmlHelper::path(array("login")))."&nbsp;".HtmlHelper::link_to(i18n("register"),HtmlHelper::path(array("register"))); ?></div>
 </div>
 
 <?php $this->yield() ?>
