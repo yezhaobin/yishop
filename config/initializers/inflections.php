@@ -1,5 +1,5 @@
 <?php 
-    class Inflections{
+ class Inflections{
         static function pluralize($name){
             $str_length = strlen($name);
 
@@ -7,7 +7,7 @@
                 case "s":
                     $result = $name."es";break;
                 case "y":
-                    $name[$length-1]="i";
+                    $name[$str_length-1]="i";
                     $result = $name."es";break;
 
                 default :
@@ -16,4 +16,4 @@
         
             return $result;
         }
-    }
+}

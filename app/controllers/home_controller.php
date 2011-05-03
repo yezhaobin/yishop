@@ -1,8 +1,9 @@
 <?php
 class HomeController extends ApplicationController{
     function index(){
-		echo "home";
+		$this->render();
     }
+	
 
     function show(){
 		

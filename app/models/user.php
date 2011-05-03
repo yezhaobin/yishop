@@ -1,4 +1,4 @@
 <?php
-class User extends AtiveRecord{
+class User extends ActiveRecord{
     
 }

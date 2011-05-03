@@ -4,12 +4,19 @@ class ApplicationController extends ActionController{
 
     function __construct(){
        parent::__construct();
-       if(!UserStuff::check_login()){
-            echo "don't login!";
-       }
+	  
+	   $this->get_categories_tree();
     }
-    static function call_model($name){
-        $name = lcfirst($name);
-        require_once (YISHOP_PATH."app/models/".$name.".php");
-    }
+	
+	function get_categories_tree(){
+	
+		require(YISHOP_PATH."app/models/category.php");
+		
+		$categories = new Category();
+		$categories = $categories->all()->query()->fetch_all();
+		
+		return $categories;
+	}
+	
 }
+
