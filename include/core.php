@@ -16,45 +16,68 @@ if(!defined("IN_YISHOP")){
 }
 
 /**
+*全局用户数据记录用户uid，username
+*/
+global $G;
+$G["uid"] = 0;
+
+/**
+*全局路由
+*/
+global $ROUTES;
+
+/**
+*现行的控制器
+*/
+global $CURRENT_CONTROLLER_NAME;
+
+/**
+*现行的动作
+*/
+global $CURRENT_ACTION_NAME;
+
+
+/**
 *Yishop 初始化类
 */
 class Yishop{
-    protected $database;
-    
-    /**
-    *载入程序配置文件、单词单复数转换文件、路由配置文件夹、公用函数文件、用户模型文件、网站控制器类文件
-    *初始化数据库信息、载入语言文件、初始化全局用户数据 
-    */
-    function __construct(){
-        require_once(YISHOP_PATH."config/config.php");
-        require_once(YISHOP_PATH."config/initializers/inflections.php");
-        require_once(YISHOP_PATH."config/routes.php");
-        require_once(YISHOP_PATH."include/functions.php");
-        require_once(YISHOP_PATH."app/models/user.php");
-        require_once(YISHOP_PATH."app/controllers/application_controller.php");
+	protected $database;
 
-        $this->database = $database;
+	/**
+	*载入程序配置文件、单词单复数转换文件、路由配置文件夹、公用函数文件、用户模型文件、网站控制器类文件
+	*初始化数据库信息、载入语言文件、初始化全局用户数据 
+	*/
+	function __construct(){
+		require_once(YISHOP_PATH."config/config.php");
+		require_once(YISHOP_PATH."config/initializers/inflections.php");
+		require_once(YISHOP_PATH."config/routes.php");
+		require_once(YISHOP_PATH."config/initializers/secret_token.php");
+		require_once(YISHOP_PATH."include/functions.php");
+		require_once(YISHOP_PATH."app/models/user.php");
+		require_once(YISHOP_PATH."app/controllers/application_controller.php");
 
-        //current language
-        $lang = isset($_GET["lang"])?$_GET["lang"]:(isset($_COOKIE["lang"])?$_COOKIE["lang"]:"");
-        $lang_file_path = YISHOP_PATH."config/locales/i18n_".$lang.".php";
-            
-        if(file_exists($lang_file_path)){
-            require_once($lang_file_path);
-            define("LANG",$lang);
-        }else{
-            require_once(YISHOP_PATH."config/locales/i18n_".SITE_LANGUAGE.".php");
-            define("LANG", SITE_LANGUAGE);
-        }
+		$this->database = $database;
 
-        global $G;//全局用户信息
-        $G["uid"] = 0;
-    }
+		//current language
+		$lang = isset($_GET["lang"])?$_GET["lang"]:(isset($_COOKIE["lang"])?$_COOKIE["lang"]:"");
+		$lang_file_path = YISHOP_PATH."config/locales/i18n_".$lang.".php";
 
-    function run(){
-        $route = new ActionDispatch();
-        $route->routes(substr($_SERVER["REQUEST_URI"], 1));
-    }
+		if(file_exists($lang_file_path)){
+			require_once($lang_file_path);
+			define("LANG",$lang);
+		}else{
+			require_once(YISHOP_PATH."config/locales/i18n_".SITE_LANGUAGE.".php");
+			define("LANG", SITE_LANGUAGE);
+		}
+
+		global $G;//全局用户信息
+		$G["uid"] = 0;
+	}
+
+	function run(){
+		$route = new ActionDispatch();
+		$route->routes(substr($_SERVER["REQUEST_URI"], 1));
+	}
 }
 
 /**
@@ -62,20 +85,22 @@ class Yishop{
 */   
 class ActionDispatch{
 
-    /**
-    *路由到呼叫的控制器和动作
-    *
-    *@access  public
-    *@param   string    $query_string
-    *@return  boolean
-    */
-    function routes($query_string){
+	/**
+	*路由到呼叫的控制器和动作
+	*
+	*@access  public
+	*@param   string    $query_string
+	*@return  boolean
+	*/
+	function routes($query_string){
 
-        global $ROUTES;
+		global $ROUTES;
+		global $CURRENT_CONTROLLER_NAME;
+		global $CURRENT_ACTION_NAME;
 
-        if(ROUTE_TYPE!="path"){
-            $query_string = $_GET["r"];
-        }
+		if(ROUTE_TYPE!="path"){
+			$query_string = $_GET["r"];
+		}
 
         if($query_string[strlen($query_string)-1] == "/"){
             $query_string = substr($query_string,0,strlen($query_string)-1);
@@ -143,6 +168,9 @@ class ActionDispatch{
                 break;
          }
 
+		$CURRENT_CONTROLLER_NAME = $controller;//现行控制器
+		$CURRENT_ACTION_NAME = $action;//现行动作
+
         if(file_exists($controller_path)){
             require($controller_path);
             $controller_instance = new $controller();
@@ -151,6 +179,7 @@ class ActionDispatch{
         }else{
             $this->error_page("404");
         }
+
         return true;
     }
     /**
@@ -219,19 +248,11 @@ class ActiveRecord implements Iterator{
         if(!empty($attributes)){
             foreach($this->fields as $key => $value){
                 if(isset($attributes[$key])){
-                    $this->fields[$key] = $value;
+                    $this->fields[$key] = $attributes[$key];
                 }
             }
         }
     }
-
-    function __get($name){
-        return  $this->fields[$name];
-    }
-
-     function __set($name,$value){
-        $this->fields[$name] = $value;
-     }
 
     function get_Table_Name(){
         $this->model_name = get_class($this);
@@ -328,7 +349,8 @@ class ActiveRecord implements Iterator{
     function update_attributes($data=array(),$validate = true){
         
         $length = size($data);
-        $set_str = "";    
+        $set_str = "";
+
         foreach($this->fields as $key => $value){
             if(!array_key_exists($key, $data)){
                 continue;
@@ -369,18 +391,22 @@ class ActiveRecord implements Iterator{
         }else{
             $pass = true;
         }
+
         if($pass){
-            foreach($this->attributes as $key => $value){
-                $fields.= $this->table_name."`$key`,";
-                $values.= "'".$this->sql_slashes($value)."',";
+			$i = 1;
+			$len = count($this->fields);
+            foreach($this->fields as $key => $value){
+                $fields.= $this->table_name.".`$key`";
+                $values.= "'".$this->sql_slashes($value)."'";
+				if($i != $len){
+					$fields .= ",";
+					$values .=",";
+				}
+				$i++;
             }
 
-            $fields[strlen($fields)-1]="";
-            $values[strlen($values)-1]="";
-            
             $sql = "insert into ".$this->table_name." ($fields) values ($values)";
             $q = mysql_query($sql);
-            
             return $q;
         }else{
             return false;
@@ -401,12 +427,17 @@ class ActiveRecord implements Iterator{
 
     function sql_slashes($str){
         if(!get_magic_quotes_gpc()){
-            $str = mysql_real_escape_string($str);
+           $str = mysql_real_escape_string($str);
         }
         return $str;
     }
 
-    function validate($call_method){
+    function validate($call_method = ""){
+		global $CURRENT_ACTION_NAME;
+
+		if($call_method == ""){
+			$call_method = $CURRENT_ACTION_NAME;
+		}
         foreach($this->validate_rules as $field=>$rule){
             if(count($rule)==2){
                 $on_method = $rule[1]["on"];
@@ -414,17 +445,19 @@ class ActiveRecord implements Iterator{
                 $on_method = "all";
             }
             $field = array("name"=>$field, "value"=>$this->fields[$field] );
-            if($on_method == $call_method || in_array($call_method, $on_method || $on_method == "all")){
+            if($on_method == $call_method || in_array($call_method, $on_method) || $on_method == "all"){
                 foreach($rule as $method=>$flag){
                     if(is_array($flag)){
                         foreach($flag as $condition=>$cvalue){
-                            $method($field,$condition,$cvalue);
+                            $this->$method($field,$condition,$cvalue);
                         }
                     }else{
-                        $method($field,$flag);
+                        $this->$method($field,$flag);
                     }
                 }
             }
+
+			return true;
         }
 
         return $this->validate_flag;
@@ -568,15 +601,16 @@ class ActiveRecord implements Iterator{
 
 class ActionController extends Controller{
 
-        public $current_action = "index";
         public $flash = array();
-        
+
         function __construct(){
             parent::__construct();
-            $this->before_filter();        
+            $this->before_filter();
         }
         
         function render( $args = array("local_var"=>array(),"options"=>array())){
+			global $CURRENT_ACTION_NAME;
+			global $CURRENT_CONTROLLER_NAME;
             $layout = "application";
             $temple="default";
             $html=true;
@@ -593,7 +627,7 @@ class ActionController extends Controller{
 
             isset($args["local_var"])?"":$args["local_var"] = array();
 
-            $view = new ActionView(get_class($this), $this->current_action, $args["local_var"]);
+            $view = new ActionView($CURRENT_CONTROLLER_NAME, $CURRENT_ACTION_NAME, $args["local_var"]);
             $option = array("layout"=>$layout, "temple"=>$temple, "html"=>$html, "text"=>$text, "json"=>$json, "js"=>$js, "xml"=>$xml);
             $view->render($option);
         }
@@ -725,7 +759,7 @@ class HtmlHelper extends Helper{
             $str .= join("/",$arg);
         }
             
-        if(URL_MODE == "friendly"){
+        if(ROUTE_TYPE == "path"){
             return SYSTME_PATH.$str;
         }else{
             return SYSTME_PATH."index.php?r=".$str;
@@ -824,7 +858,6 @@ class HtmlHelper extends Helper{
     }
 
     static function csrf_token(){
-        require(YISHOP_PATH."config/initializers/secret_token.php");
         $csrf_token = md5(SECRET_TOKEN.$_SERVER["HTTP_USER_AGENT"]);
         return $csrf_token;
     }
@@ -842,48 +875,50 @@ class UserStuff{
             $password = isset($_POST["password"])?$_POST["password"]:"";
             $expire = isset($_POST["remember_me"])?$_POST["remember_me"]:false;
             if(empty($expire)){
-                $expire = 0;
+                $expire = 3600 * 24;
             }else{
-                $expire = 3600 * 365;
+                $expire = 3600 * 24 * 365;
             }
             $user = new User();
-            $user = $user->where(array("username"=>$username,"password"=>$password))->query()->fetch();
+            $user = $user->where(array("username"=>$username))->query()->fetch();
 
-            if(empty($user)){
+            if(empty($user)||$user["password"]!=md5(md5($password).$user["salt"])){
                 $G["uid"] = 0;
             }else{
                 $G["uid"] = $user["id"];
                 $G["username"] = $user["username"];
-                $G["password"] = md5($user["password"].$user["salt"]);
-                set_cookie(COOKIE_PREF."auth",$G["uid"]."\t".$G["username"]."\t".$G["password"],$expire);
+                $G["password"] = md5($user["password"].$_SERVER["HTTP_USER_AGENT"]);
+                $r=set_cookie(COOKIE_PREF."auth",authcode($G["uid"]."\t".$G["username"]."\t".$G["password"], "ENCODE"),$expire);
             }
         }
     }
 
     static function check_login(){
+		global $G;
         $auth_str = @$_COOKIE[COOKIE_PREF."auth"];
         if(empty($auth_str)){
             return false;
         }
-        $auth_str = UserStuff::authcode($auth_str, "DECODE");
-        $auth_array = explode("\t", $auth_str);       
-        if(count($auth_array) >= 3){
+        $auth_str = authcode($auth_str, "DECODE");
+        $auth_array = explode("\t", $auth_str);
+        if(count($auth_array) != 3){
             return false;
         }
 
-        $user_id = $auth_str[0];
-        $user_name = $auth_str[1];
-        $password  = $auth_str[2];
+        $uid = $auth_array[0];
+        $username = $auth_array[1];
+        $password = $auth_array[2];
+
         $user = new User();
-        $user = User.find($user_id)->query()->fetch();
-        
-        if(!empty($user) && md5($user["password"].$user["salt"]) == $password){
+        $user = $user->find($uid)->query()->fetch();
+
+        if(!empty($user) && md5($user["password"].$_SERVER["HTTP_USER_AGENT"]) == $password){
             $G["uid"] = $user["id"];
             $G["username"] = $user["username"];
             $G["password"] = $user["password"];
             return true;
         }else{
-            $G["id"] = 0;
+            $G["uid"] = 0;
             return false;
         }
 
@@ -894,9 +929,10 @@ class UserStuff{
     }
     
     static function create($data){
-
         $user = new User($data);
-        $user->save();
+        $user->fields["salt"] = md5($_SERVER["HTTP_USER_AGENT"].rand());
+        $user->fields["password"] = md5(md5(trim($data["password"])).$user->fields["salt"]);
+        return $user->save();
     }
 
     static function ban($uid){

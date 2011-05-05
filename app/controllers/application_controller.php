@@ -1,6 +1,5 @@
 <?php
 class ApplicationController extends ActionController{
-    public $current_action = "";
 
     function __construct(){
         parent::__construct();

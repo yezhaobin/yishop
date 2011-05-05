@@ -21,7 +21,7 @@ function i18n($key, $lang = "default"){
 
     if(array_key_exists($key, $i18n)){
         return $i18n[$key];
-    }elseif(array_key_exists($key , $i18n_tpl)){
+    }elseif(@array_key_exists($key , $i18n_tpl)){
         return $i18n_tpl[$key];
     }else{
         return system_error("lang_file_does't_contain_the_words",$key);
@@ -63,7 +63,7 @@ function delete_cookie($name,$path="/"){
 }
 
 function authcode($str, $do = "ENCODE"){
-    $do != 'ENCODE' && $str = base64_decode($string);
+    $do != 'ENCODE' && $str = base64_decode($str);
     $code = '';
     $key  = substr(md5($_SERVER['HTTP_USER_AGENT'].SECRET_TOKEN),8,18);
     $keylen = strlen($key); $strlen = strlen($str);
