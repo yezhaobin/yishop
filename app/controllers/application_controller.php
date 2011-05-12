@@ -13,9 +13,9 @@ class ApplicationController extends ActionController{
         require(YISHOP_PATH."app/models/category.php");
         $menu = array();
         $categories = new Category();
-        $categories = $categories->all()->query()->fetch_all();
+        $categories = $categories->all()->query();
 
-        foreach($categories as $key =>$value){
+        foreach($categories as $value){
             if($value["cid"] == 0){
                 $menu[] = $value;
             }
