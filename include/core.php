@@ -40,14 +40,15 @@ global $CURRENT_ACTION_NAME;
 /**
 *Yishop 初始化类
 */
-class Yishop{
+class Yishop
+{
 	protected $database;
-
 	/**
 	*载入程序配置文件、单词单复数转换文件、路由配置文件夹、公用函数文件、用户模型文件、网站控制器类文件
 	*初始化数据库信息、载入语言文件、初始化全局用户数据 
 	*/
-	function __construct(){
+	function __construct()
+	{
 		require_once(YISHOP_PATH."config/config.php");
 		require_once(YISHOP_PATH."config/initializers/inflections.php");
 		require_once(YISHOP_PATH."config/routes.php");
@@ -102,45 +103,50 @@ class ActionDispatch{
 			$query_string = $_GET["r"];
 		}
 
-        if($query_string[strlen($query_string)-1] == "/"){
-            $query_string = substr($query_string,0,strlen($query_string)-1);
-        }
+		if($query_string[strlen($query_string)-1] == "/"){
+			$query_string = substr($query_string,0,strlen($query_string)-1);
+		}
 
-        if(isset($ROUTES[$query_string])){
-            $query_string = $ROUTES[$query_string];
-        }
+		if(isset($ROUTES[$query_string])){
+			$query_string = $ROUTES[$query_string];
+		}
 
-        $routes = explode("/", $query_string);
-        $tmp = $routes;
-        $routes=array();
-        foreach($tmp as $key => $value){
-            if($value!=""){
-                $routes[] = $value;
-            }
-        }
-        if(count($routes)){
-            $controller = ucfirst($routes[0])."Controller";
-            $controller_path = YISHOP_PATH."app/controllers/".$routes[0]."_controller".".php";
-        }
-        $http_method = $_SERVER["REQUEST_METHOD"];
-        $params = array();
-        switch (count($routes)){
-            case 0:
-                $controller = "HomeController";
-                $controller_path = YISHOP_PATH."app/controllers/home_controller".".php";
-                $action = "index";
-                break;
-            case 1:
-                $action = "index";
-                if ($http_method == "POST"){
-                    $action = "save";
-                }
-                break;
-            case 2: 
-                if ($routes[1] == "new"){
-                    $action = "create";
-                    break;
-                }
+		$routes = explode("/", $query_string);
+		$tmp = $routes;
+		$routes=array();
+
+		foreach($tmp as $key => $value){
+			if($value!=""){
+				$routes[] = $value;
+			}
+		}
+
+		if(count($routes)){
+			$controller = ucfirst($routes[0])."Controller";
+			$controller_path = YISHOP_PATH."app/controllers/".$routes[0]."_controller".".php";
+		}
+
+		$http_method = $_SERVER["REQUEST_METHOD"];
+		$params = array();
+
+		switch (count($routes)){
+			case 0:
+				$controller = "HomeController";
+				$controller_path = YISHOP_PATH."app/controllers/home_controller".".php";
+				$action = "index";
+				break;
+			case 1:
+				$action = "index";
+
+				if ($http_method == "POST"){
+					$action = "save";
+				}
+				break;
+			case 2: 
+				if ($routes[1] == "new"){
+					$action = "create";
+					break;
+				}
                     
                 if(is_numeric($routes[1])){
                     $params["id"] = intval($routes[1]);
@@ -217,6 +223,14 @@ class Controller{
     }
 }
 
+/**
+*数据处理类
+*@attribute public static recourse
+*@attribute public string table_name
+*@attribute protected string select_string
+*@attribute protected string where_string
+*@attribute protected string oder_string
+*/
 class ActiveRecord implements Iterator{
     public static $db_connect;
     public $table_name = "";
@@ -456,8 +470,6 @@ class ActiveRecord implements Iterator{
                     }
                 }
             }
-
-			return true;
         }
 
         return $this->validate_flag;
@@ -632,6 +644,38 @@ class ActionController extends Controller{
             $view->render($option);
         }
 
+		function redirect($route = array("controller"=>"","action"=>"","params"=>array())){
+			if(is_array($route)){
+				$result = '/'.(isset($route['action'])?$route['controller']."/".$route['action']:$route['controller'].'/index');
+				$params_str = "";
+				if(isset($route['params'])&&is_array($route['params'])){
+					$len = count($route['params']);
+					$i = 1;
+					foreach($route['params'] as $key=>$value){
+						$params_str .= $key.'='.$value;
+						if($i != $len){
+							$params_str .= "&";
+						}
+					}
+				}else{
+					$params_str = '';
+				}
+
+				$result = empty($params_str)?$result:$result."?".$params_str;
+				if(empty($result)){
+					$result = "/";
+				}
+				exit();
+				header("Location: ".$result);
+			}else{
+				header("Location: ".$route);
+			}
+			exit;
+		}
+
+		function redirect_back(){
+			
+		}
         function before_filter(){
             return false;
         }
@@ -864,91 +908,116 @@ class HtmlHelper extends Helper{
 
 }
 
-
+/**
+*用户事务类
+*/
 class UserStuff{
 
-    static function login(){
-        global $G;
-        $user = UserStuff::check_login();
-        if(empty($user)){
-            $username = isset($_POST["username"])?$_POST["username"]:"";
-            $password = isset($_POST["password"])?$_POST["password"]:"";
-            $expire = isset($_POST["remember_me"])?$_POST["remember_me"]:false;
-            if(empty($expire)){
-                $expire = 3600 * 24;
-            }else{
-                $expire = 3600 * 24 * 365;
-            }
-            $user = new User();
-            $user = $user->where(array("username"=>$username))->query()->fetch();
-
-            if(empty($user)||$user["password"]!=md5(md5($password).$user["salt"])){
-                $G["uid"] = 0;
-            }else{
-                $G["uid"] = $user["id"];
-                $G["username"] = $user["username"];
-                $G["password"] = md5($user["password"].$_SERVER["HTTP_USER_AGENT"]);
-                $r=set_cookie(COOKIE_PREF."auth",authcode($G["uid"]."\t".$G["username"]."\t".$G["password"], "ENCODE"),$expire);
-            }
-        }
-    }
-
-    static function check_login(){
+	/**
+	*用户登录
+	*/
+	static function login(){
 		global $G;
-        $auth_str = @$_COOKIE[COOKIE_PREF."auth"];
-        if(empty($auth_str)){
-            return false;
-        }
-        $auth_str = authcode($auth_str, "DECODE");
-        $auth_array = explode("\t", $auth_str);
-        if(count($auth_array) != 3){
-            return false;
-        }
+		$user = UserStuff::check_login();
+		if(empty($user)){
+			$username = isset($_POST["username"])?$_POST["username"]:"";
+			$password = isset($_POST["password"])?$_POST["password"]:"";
+			$password = trim($password);
+			$expire = isset($_POST["remember_me"])?$_POST["remember_me"]:false;
+			if(empty($expire)){
+				$expire = 3600 * 24;
+			}else{
+				$expire = 3600 * 24 * 365;
+			}
 
-        $uid = $auth_array[0];
-        $username = $auth_array[1];
-        $password = $auth_array[2];
+			$user = new User();
+			$user = $user->where(array("username"=>$username))->query()->fetch();
+			if(empty($user)||$user["password"] != md5(md5($password).$user["salt"])){
+				$G["uid"] = 0;
+			}else{
+				$G["uid"] = $user["id"];
+				$G["username"] = $user["username"];
+				$G["password"] = md5($user["password"].$_SERVER["HTTP_USER_AGENT"]);
+				$r=set_cookie(COOKIE_PREF."auth",authcode($G["uid"]."\t".$G["username"]."\t".$G["password"], "ENCODE"),$expire);
+			}
+		}
+	}
 
-        $user = new User();
-        $user = $user->find($uid)->query()->fetch();
+	/**
+	*检查用户登录
+	*/
+	static function check_login()
+	{
+		global $G;
+		$auth_str = @$_COOKIE[COOKIE_PREF."auth"];
+		if(empty($auth_str))
+		{
+			return false;
+		}
 
-        if(!empty($user) && md5($user["password"].$_SERVER["HTTP_USER_AGENT"]) == $password){
-            $G["uid"] = $user["id"];
-            $G["username"] = $user["username"];
-            $G["password"] = $user["password"];
-            return true;
-        }else{
-            $G["uid"] = 0;
-            return false;
-        }
+		$auth_str = authcode($auth_str, "DECODE");
+		$auth_array = explode("\t", $auth_str);
+		if(count($auth_array) != 3)
+		{
+			return false;
+		}
 
-    }
+		$uid = $auth_array[0];
+		$username = $auth_array[1];
+		$password = $auth_array[2];
 
-    static function logout(){
-        return set_cookie(COOKIE_PREF."auth", "",time()-100000);
-    }
+		$user = new User();
+		$user = $user->find($uid)->query()->fetch();
+
+		if(!empty($user) && md5($user["password"].$_SERVER["HTTP_USER_AGENT"]) == $password)
+		{
+			$G["uid"] = $user["id"];
+			$G["username"] = $user["username"];
+			$G["password"] = $user["password"];
+			return true;
+		}else{
+			$G["uid"] = 0;
+			return false;
+		}
+
+	}
+	
+	/**
+	*用户登出
+	*/
+	static function logout()
+	{
+		return set_cookie(COOKIE_PREF."auth", "",time()-100000);
+	}
     
-    static function create($data){
-        $user = new User($data);
-        $user->fields["salt"] = md5($_SERVER["HTTP_USER_AGENT"].rand());
-        $user->fields["password"] = md5(md5(trim($data["password"])).$user->fields["salt"]);
-        return $user->save();
+	/**
+	*用户登出
+	*/
+	static function create($data)
+	{
+		$user = new User($data);
+		$user->fields["salt"] = md5($_SERVER["HTTP_USER_AGENT"].rand());
+		$user->fields["password"] = md5(md5(trim($data["password"])).$user->fields["salt"]);
+		return $user->save();
     }
 
-    static function ban($uid){
-        $user = new User();
-        $user = $user->find($uid);
-        
-        if($user->update_attributes(array("ban" => 1))){
-            return true;
-        }
-        return false;
-    }
+	/**
+	*禁止用户
+	*/
+	static function ban($uid)
+	{
+		$user = new User();
+		$user = $user->find($uid);
+		if($user->update_attributes(array("ban" => 1))){
+			return true;
+		}
+		return false;
+	}
 }
 
-class Email{
-
-    function send($to, $from, $subject,$html,$text)
+class Email
+{
+	function send($to, $from, $subject,$html,$text)
     {    
         $html=base64_encode($html);
         $to=preg_replace("/\s/","",$to);
